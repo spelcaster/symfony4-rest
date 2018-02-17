@@ -1,6 +1,7 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
+    locale: 'en'
 
 services:
     # default configuration for services in *this* file
@@ -25,3 +26,33 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    #
+
+
+    App\Battle\BattleManager:
+        arguments: ['@doctrine.orm.entity_manager']
+
+    App\Battle\PowerManager:
+        arguments: ['@doctrine.orm.entity_manager']
+
+    App\Controller\BaseController:
+        autowire: true
+
+    App\Controller\Web\ProgrammerController:
+        autowire: true
+
+    api_exception_subscriber:
+        class: App\EventListener\ApiExceptionSubscriber
+        arguments: ['%kernel.debug%', '@logger']
+        tags:
+            - { name: kernel.event_subscriber }
+
+    pagination_factory:
+        class: App\Pagination\PaginationFactory
+        arguments: ['@router']
+
+    link_serialization_subscriber:
+        class: App\Serializer\LinkSerializationSubscriber
+        arguments: ['@router', '@annotation_reader']
+        tags:
+            - { name: jms_serializer.event_subscriber }

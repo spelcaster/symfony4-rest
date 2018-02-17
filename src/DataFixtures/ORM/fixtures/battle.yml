@@ -1,0 +1,23 @@
+App\Entity\User:
+    user:
+        username: user
+        email: 'user@example.com'
+        plainPassword: '123456'
+        enabled: 1
+
+App\Entity\Project:
+    project_burning_bot:
+        name: BurningBot
+        difficultyLevel: <numberBetween(1, 10)>
+    project_instafacetweet:
+        name: InstaFaceTweet
+        difficultyLevel: <numberBetween(1, 10)>
+    project_mountbox:
+        name: MountBox
+        difficultyLevel: <numberBetween(1, 10)>
+    project_video_game:
+        name: Video Game
+        difficultyLevel: <numberBetween(1, 10)>
+    project_bike_shop:
+        name: Bike Shop Project
+        difficultyLevel: <numberBetween(1, 10)>

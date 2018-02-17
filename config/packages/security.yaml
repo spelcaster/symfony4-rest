@@ -1,0 +1,34 @@
+security:
+    encoders:
+        App\Entity\User: bcrypt
+
+    providers:
+        battle_users:
+            entity: { class: App:User }
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        main:
+            pattern: ^/
+            anonymous: true
+            form_login:
+                # The route name that the login form submits to
+                check_path: security_login_check
+                login_path: security_login_form
+
+            logout:
+                # The route name the user can go to in order to logout
+                path: security_logout
+
+    # Easy way to control access for large sections of your site
+    # Note: Only the *first* access control that matches will be used
+    access_control:
+        - { path: ^/_wdt|_profiler, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/register, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        # allow anonymous API - if auth is needed, it's handled in the controller
+        - { path: ^/api, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/, roles: IS_AUTHENTICATED_FULLY }

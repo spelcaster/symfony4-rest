@@ -1,0 +1,11 @@
+fos_user:
+    db_driver: orm
+    firewall_name: main
+    user_class: App\Entity\User
+
+    service:
+        mailer: "fos_user.mailer.noop"
+
+    from_email:
+        address: "user@sf4rest.com"
+        sender_name: "User"
