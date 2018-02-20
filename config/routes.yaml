@@ -9,3 +9,5 @@ app_web:
 app_api:
     resource: "../src/Controller/Api"
     type: annotation
+    defaults:
+        _format: json

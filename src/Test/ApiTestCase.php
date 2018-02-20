@@ -7,6 +7,8 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ServerException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -274,5 +276,23 @@ class ApiTestCase extends KernelTestCase
         }
 
         return $this->responseAsserter;
+    }
+
+    /**
+     * @return GuzzleHttp\Psr7\Response
+     */
+    protected function request($uri, array $options = [], $method = 'GET')
+    {
+        $response = new Response();
+
+        try {
+            $response = $this->client->request($method, $uri, $options);
+        } catch(ClientException $e) { // 400 errors
+            $response = $e->getResponse();
+        } catch(ServerException $e) { // 500 errors
+            $response = $e->getResponse();
+        }
+
+        return $response;
     }
 }

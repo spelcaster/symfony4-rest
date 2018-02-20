@@ -2,18 +2,23 @@
 
 namespace App\Controller;
 
+use Symfony\Component\Form\FormInterface;
+use JMS\Serializer\SerializationContext;
+use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\HttpFoundation\Request;
+
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
+use App\Entity\User;
+use App\Battle\BattleManager;
 use App\Repository\ProgrammerRepository;
 use App\Repository\UserRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\BattleRepository;
 use App\Repository\ApiTokenRepository;
-use JMS\Serializer\SerializationContext;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Component\HttpFoundation\Request;
-use App\Entity\User;
-use App\Battle\BattleManager;
 
 abstract class BaseController extends Controller
 {
@@ -131,6 +136,54 @@ abstract class BaseController extends Controller
         return new Response($json, $statusCode, array(
             'Content-Type' => 'application/json'
         ));
+    }
+
+    protected function processForm(Request $request, FormInterface $form)
+    {
+        $body = $request->getContent();
+        $data = json_decode($body, true);
+
+        if (JSON_ERROR_NONE != json_last_error()) {
+            $apiProblem = new ApiProblem(
+                422, ApiProblem::TYPE_INVALID_REQUEST_BODY_FORMAT
+            );
+
+            throw new ApiProblemException($apiProblem);
+        }
+
+        $clearMissing = $request->getMethod() != 'PATCH';
+        $form->submit($data, $clearMissing);
+    }
+
+    protected function getErrorsFromForm(FormInterface $form)
+    {
+        $errors = [];
+
+        foreach ($form->getErrors() as $error) {
+            $errors[] = $error->getMessage();
+        }
+
+        foreach ($form->all() as $childForm) {
+            if (!$childForm instanceof FormInterface) {
+                continue;
+            }
+
+            if ($childErrors = $this->getErrorsFromForm($childForm)) {
+                $errors[$childForm->getName()] = $childErrors;
+            }
+        }
+
+        return $errors;
+    }
+
+    protected function createApiProblemValidationException(FormInterface $form)
+    {
+        $errors = $this->getErrorsFromForm($form);
+
+        $apiProblem = new ApiProblem(400, ApiProblem::TYPE_VALIDATION_ERROR);
+        $apiProblem->set('errors', $errors);
+
+        return new ApiProblemException($apiProblem);
     }
 
     protected function serialize($data, $format = 'json')

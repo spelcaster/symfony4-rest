@@ -28,6 +28,8 @@ services:
     # please note that last definitions always *replace* previous ones
     #
 
+    App\EventListener\ApiExceptionSubscriber:
+        arguments: ['%kernel.debug%']
 
     App\Battle\BattleManager:
         arguments: ['@doctrine.orm.entity_manager']

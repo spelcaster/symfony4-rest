@@ -25,9 +25,11 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'Yay, I\'m a tester'
         ];
 
-        $response = $this->client->post('/api/programmers', [
-            'body' => json_encode($data)
-        ]);
+        $response = $this->request(
+            '/api/programmers',
+            ['body' => json_encode($data)],
+            'POST'
+        );
 
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
@@ -54,7 +56,8 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->client->get($uri);
+
+        $response = $this->request($uri);
 
         $this->assertEquals($expectedStatus, $response->getStatusCode());
         $this->asserter()
@@ -87,7 +90,7 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha2'
         ]);
 
-        $response = $this->client->get($uri);
+        $response = $this->request($uri);
 
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
@@ -122,9 +125,11 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->client->put($uri, [
-            'body' => json_encode($expectedData)
-        ]);
+        $response = $this->request(
+            $uri,
+            ['body' => json_encode($expectedData)],
+            'PUT'
+        );
 
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
@@ -152,9 +157,11 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->client->put($uri, [
-            'body' => json_encode($expectedData)
-        ]);
+        $response = $this->request(
+            $uri,
+            ['body' => json_encode($expectedData)],
+            'PUT'
+        );
 
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
@@ -182,7 +189,7 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->client->delete($uri);
+        $response = $this->request($uri, [], 'DELETE');
 
         $this->assertEquals($expectedStatus, $response->getStatusCode());
     }
@@ -203,9 +210,11 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->client->patch($uri, [
-            'body' => json_encode($expectedData)
-        ]);
+        $response = $this->request(
+            $uri,
+            ['body' => json_encode($expectedData)],
+            'PATCH'
+        );
 
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
@@ -218,5 +227,102 @@ class ProgrammerControllerTest extends ApiTestCase
             ->assertResponsePropertyEquals(
                 $response, 'avatarNumber', 1
             );
+    }
+
+    public function test_GivenInvalidProgrammer_WhenCreating_ShouldShowErrors()
+    {
+        $expectedStatus = 400;
+
+        $data = [
+            'avatarNumber' => rand(1,6),
+            'tagLine' => 'aloha'
+        ];
+
+        $expectedProps = ['type', 'title', 'errors'];
+
+        $response = $this->request(
+            '/api/programmers',
+            ['body' => json_encode($data)],
+            'POST'
+        );
+
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $data = json_decode($response->getBody(), true);
+
+        $this->asserter()
+            ->assertResponsePropertiesExist($response, $expectedProps);
+
+        $this->asserter()
+            ->assertResponsePropertyExists($response, 'errors.nickname');
+
+        $this->asserter()
+            ->assertResponsePropertyEquals(
+                $response,
+                'errors.nickname[0]',
+                'Please enter a clever nickname'
+            );
+
+        $this->asserter()
+            ->assertResponsePropertyDoesNotExist(
+                $response, 'errors.avatarNumber'
+            );
+
+        $expectedContent = 'application/problem+json';
+        $this->assertEquals(
+            $expectedContent, $response->getHeader('Content-Type')[0]
+        );
+    }
+
+    public function test_GivenInvalidJson_WhenAnyRequest_ShouldFailWith422()
+    {
+        $invalidJson = <<<EOF
+{
+    "nickname": "asdadasd,
+    "avatarNumber": 1,
+    "tagLine": "aloha"
+}
+EOF;
+
+        $expectedProps = ['type', 'title', 'errors'];
+
+        $response = $this->request(
+            '/api/programmers',
+            ['body' => $invalidJson],
+            'POST'
+        );
+
+        $expectedStatus = 422;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedContent = 'application/problem+json';
+        $this->assertEquals(
+            $expectedContent, $response->getHeader('Content-Type')[0]
+        );
+
+        $this->asserter()
+            ->assertResponsePropertyContains($response, 'type', 'invalid_body_format');
+    }
+
+    public function test_GivenInexistentProgrammer_WhenShow_ShouldFailWith404()
+    {
+        $response = $this->request('/api/programmers/noop');
+
+        $expectedStatus = 404;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedContent = 'application/problem+json';
+        $this->assertEquals(
+            $expectedContent, $response->getHeader('Content-Type')[0]
+        );
+
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'type', 'about:blank');
+
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'title', 'Not Found');
+
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'detail', 'No programmer found with username noop');
     }
 }

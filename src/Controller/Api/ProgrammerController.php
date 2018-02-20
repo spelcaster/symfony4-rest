@@ -4,7 +4,6 @@ namespace App\Controller\Api;
 
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
-use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +23,10 @@ class ProgrammerController extends BaseController
         $programmer = new Programmer();
         $form = $this->createForm(ProgrammerType::class, $programmer);
         $this->processForm($request, $form);
+
+        if (!$form->isValid()) {
+            throw $this->createApiProblemValidationException($form);
+        }
 
         $programmer->setUser($this->findUserByUsername('user'));
 
@@ -94,6 +97,10 @@ class ProgrammerController extends BaseController
         $form = $this->createForm(UpdateProgrammerType::class, $programmer);
         $this->processForm($request, $form);
 
+        if (!$form->isValid()) {
+            throw $this->createApiProblemValidationException($form);
+        }
+
         $em = $this->getDoctrine()->getManager();
         $em->persist($programmer);
         $em->flush();
@@ -118,15 +125,5 @@ class ProgrammerController extends BaseController
         }
 
         return $this->createApiResponse([], 204);
-    }
-
-    private function processForm(Request $request, FormInterface $form)
-    {
-        $body = $request->getContent();
-        $data = json_decode($body, true);
-
-        $clearMissing = $request->getMethod() != 'PATCH';
-
-        $form->submit($data, $clearMissing);
     }
 }
