@@ -15,7 +15,7 @@ use App\Annotation\Link;
  * @Serializer\ExclusionPolicy("all")
  * @Link(
  *  "self",
- *  route = "api_programmers_show",
+ *  route = "api_programmer_show",
  *  params = { "nickname": "object.getNickname()" }
  * )
  */

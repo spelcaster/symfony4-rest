@@ -15,6 +15,8 @@
         <env name="APP_SECRET" value="s$cretf0rt3st" />
         <env name="SHELL_VERBOSITY" value="-1" />
         <!-- define your env variables for the test env here -->
+        <env name="DATABASE_URL" value="mysql://user:password@127.0.0.1:3306/database" />
+        <env name="TEST_BASE_URL" value="http://localhost:8000" />
     </php>
 
     <testsuites>

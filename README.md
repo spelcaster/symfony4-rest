@@ -18,3 +18,4 @@ bin/console hautelook:fixtures:load
 - [ ] Fix resources scss
 - [ ] Fix resources font-awesome
 - [ ] Implement API
+- [ ] Fix unit test for different environments (dev and test should differ)

@@ -1,3 +1,11 @@
 #index:
 #    path: /
 #    controller: App\Controller\DefaultController::index
+
+app_web:
+    resource: "../src/Controller/Web"
+    type: annotation
+
+app_api:
+    resource: "../src/Controller/Api"
+    type: annotation

@@ -41,12 +41,6 @@ services:
     App\Controller\Web\ProgrammerController:
         autowire: true
 
-    api_exception_subscriber:
-        class: App\EventListener\ApiExceptionSubscriber
-        arguments: ['%kernel.debug%', '@logger']
-        tags:
-            - { name: kernel.event_subscriber }
-
     pagination_factory:
         class: App\Pagination\PaginationFactory
         arguments: ['@router']
