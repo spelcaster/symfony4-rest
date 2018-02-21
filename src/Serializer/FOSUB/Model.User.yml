@@ -1,0 +1,3 @@
+# use jms_serializer instead of FOS\UserBundle\Model\User::serialize
+FOS\UserBundle\Model\User:
+    exclusion_policy: ALL

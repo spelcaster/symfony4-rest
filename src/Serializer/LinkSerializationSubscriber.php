@@ -31,18 +31,22 @@ class LinkSerializationSubscriber implements EventSubscriberInterface
         $visitor = $event->getVisitor();
 
         $object = $event->getObject();
+
+        // read annotations used in a class
         $annotations = $this->annotationReader
             ->getClassAnnotations(new \ReflectionObject($object));
 
         $links = array();
         foreach ($annotations as $annotation) {
-            if ($annotation instanceof Link) {
-                $uri = $this->router->generate(
-                    $annotation->route,
-                    $this->resolveParams($annotation->params, $object)
-                );
-                $links[$annotation->name] = $uri;
+            if (!($annotation instanceof Link)) {
+                continue;
             }
+
+            $uri = $this->router->generate(
+                $annotation->route,
+                $this->resolveParams($annotation->params, $object)
+            );
+            $links[$annotation->name] = $uri;
         }
 
         if ($links) {
@@ -53,6 +57,7 @@ class LinkSerializationSubscriber implements EventSubscriberInterface
     private function resolveParams(array $params, $object)
     {
         foreach ($params as $key => $param) {
+            // evaluate Link::params expression
             $params[$key] = $this->expressionLanguage
                 ->evaluate($param, array('object' => $object));
         }

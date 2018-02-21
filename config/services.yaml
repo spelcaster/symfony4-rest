@@ -43,12 +43,7 @@ services:
     App\Controller\Web\ProgrammerController:
         autowire: true
 
-    pagination_factory:
-        class: App\Pagination\PaginationFactory
-        arguments: ['@router']
-
     link_serialization_subscriber:
         class: App\Serializer\LinkSerializationSubscriber
-        arguments: ['@router', '@annotation_reader']
         tags:
             - { name: jms_serializer.event_subscriber }

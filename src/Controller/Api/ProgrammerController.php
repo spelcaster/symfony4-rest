@@ -7,13 +7,33 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Pagerfanta\Adapter\DoctrineORMAdapter;
+use Pagerfanta\Pagerfanta;
 use App\Controller\BaseController;
 use App\Entity\Programmer;
 use App\Form\Type\ProgrammerType;
 use App\Form\Type\UpdateProgrammerType;
+use App\Pagination\PaginationFactory;
 
 class ProgrammerController extends BaseController
 {
+    /**
+     * Create paginated responses
+     *
+     * @var PaginationFactory
+     */
+    protected $paginationFactory;
+
+    /**
+     * ProgrammerController ctor
+     *
+     * @param mixed PaginationFactory $paginationFactory
+     */
+    public function __construct(PaginationFactory $paginationFactory)
+    {
+        $this->paginationFactory = $paginationFactory;
+    }
+
     /**
      * @Route("/api/programmers", name="api_programmer_new")
      * @Method("POST")
@@ -64,18 +84,23 @@ class ProgrammerController extends BaseController
     }
 
     /**
-     * @Route("/api/programmers", name="api_programmer_list")
+     * @Route("/api/programmers", name="api_programmer_collection")
      * @Method("GET")
      */
-    public function list()
+    public function list(Request $request)
     {
-        $programmers = $this->getDoctrine()
+        $filter = $request->query->get('filter');
+
+        $queryBuilder = $this->getDoctrine()
             ->getRepository('App:Programmer')
-            ->findAll();
+            ->findAllQueryBuilder($filter);
 
-        $data = ['programmers' => $programmers];
+        $route = 'api_programmer_collection';
+        $paginatedCollection = $this->paginationFactory->createCollection(
+            $queryBuilder, $request, $route
+        );
 
-        return $this->createApiResponse($data);
+        return $this->createApiResponse($paginatedCollection);
     }
 
     /**

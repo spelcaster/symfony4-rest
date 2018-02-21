@@ -16,9 +16,6 @@ class ProgrammerControllerTest extends ApiTestCase
     public function test_GivenValidUser_WhenCreating_ShouldNotBreak()
     {
         $expectedNickname = "CoolGuy";
-        $expectedUri = "/api/programmers/CoolGuy";
-        $expectedStatus = 201;
-
         $data = [
             'nickname' => $expectedNickname,
             'avatarNumber' => rand(1,6),
@@ -31,23 +28,20 @@ class ProgrammerControllerTest extends ApiTestCase
             'POST'
         );
 
+        $expectedStatus = 201;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedUri = "/api/programmers/CoolGuy";
+        $this->assertEquals($expectedUri, $response->getHeader('Location')[0]);
 
         $body = $response->getBody()->getContents();
         $data = json_decode($body, true);
-
-        $this->assertEquals($expectedUri, $response->getHeader('Location')[0]);
         $this->assertEquals($expectedNickname, $data['nickname']);
     }
 
     public function test_GivenKnownProgrammer_WhenRequest_ShouldShowProgrammer()
     {
         $expectedNickname = uniqid("Shurelous");
-        $expectedStatus = 200;
-        $expectedProps = [
-            'nickname', 'avatarNumber', 'powerLevel', 'tagLine'
-        ];
-
         $uri = "/api/programmers/$expectedNickname";
 
         $this->createProgrammer([
@@ -56,10 +50,14 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-
         $response = $this->request($uri);
 
+        $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedProps = [
+            'nickname', 'avatarNumber', 'powerLevel', 'tagLine'
+        ];
         $this->asserter()
             ->assertResponsePropertiesExist($response, $expectedProps);
 
@@ -67,15 +65,41 @@ class ProgrammerControllerTest extends ApiTestCase
             ->assertResponsePropertyEquals(
                 $response, 'nickname', $expectedNickname
             );
+
+        $this->asserter()
+            ->assertResponsePropertyEquals(
+                $response, '_links.self', $uri
+            );
+    }
+
+    /**
+     * undocumented function
+     *
+     * @return void
+     */
+    public function test_GivenExistentProgrammer_WhenDeepRequest_ShouldShowDeepProp()
+    {
+        $expectedNickname = uniqid("Shurelous");
+        $uri = "/api/programmers/$expectedNickname?deep=1";
+
+        $this->createProgrammer([
+            'nickname' => $expectedNickname,
+            'avatarNumber' => 1,
+            'tagLine' => 'aloha'
+        ]);
+
+        $response = $this->request($uri);
+
+        $expectedStatus = 200;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedProp = 'user';
+        $this->asserter()
+            ->assertResponsePropertyExists($response, $expectedProp);
     }
 
     public function test_GivenListOfProgrammers_WhenRequest_ShouldShowProgrammers()
     {
-        $expectedCount = 2;
-        $expectedStatus = 200;
-        $expectedProp = 'programmers';
-        $expectedNickname = 'Programmer2';
-
         $uri = "/api/programmers";
 
         $this->createProgrammer([
@@ -84,6 +108,7 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha2'
         ]);
 
+        $expectedNickname = 'Programmer2';
         $this->createProgrammer([
             'nickname' => $expectedNickname,
             'avatarNumber' => 2,
@@ -92,25 +117,106 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $response = $this->request($uri);
 
+        $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
+        $expectedProp = 'items';
         $this->asserter()
             ->assertResponsePropertyIsArray($response, $expectedProp);
 
+        $expectedCount = 2;
         $this->asserter()
             ->assertResponsePropertyCount($response, $expectedProp, $expectedCount);
 
+        $expectedProp = 'items[1].nickname';
         $this->asserter()
-            ->assertResponsePropertyEquals(
-                $response, $expectedProp . '[1].nickname', $expectedNickname
-            );
+            ->assertResponsePropertyEquals($response, $expectedProp, $expectedNickname);
+    }
+
+    public function test_GivenListOfProgrammers_WhenRequest_ShouldShowProgrammersWithPagination()
+    {
+        $this->createProgrammer([
+            'nickname' => "willnotmatch",
+            'avatarNumber' => 3,
+        ]);
+
+        for ($i = 0; $i < 25; $i++) {
+            $this->createProgrammer([
+                'nickname' => "Programmer$i",
+                'avatarNumber' => rand(1, 6),
+                'tagLine' => "aloha $i"
+            ]);
+        }
+
+        $uri = "/api/programmers?filter=programmer";
+
+        $response = $this->request($uri);
+
+        $expectedStatus = 200;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedNickname = 'Programmer5';
+        $expectedProp = 'items[5].nickname';
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, $expectedProp, $expectedNickname);
+
+        $expectedCount = 10;
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'count', $expectedCount);
+
+        $expectedTotal = 25;
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'total', $expectedTotal);
+
+        $this->asserter()
+            ->assertResponsePropertyExists($response, '_links.next');
+
+        $response = $this->request(
+            $this->asserter()->readResponseProperty($response, '_links.next')
+        );
+
+        $expectedStatus = 200;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedNickname = 'Programmer15';
+        $expectedProp = 'items[5].nickname';
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, $expectedProp, $expectedNickname);
+
+        $expectedCount = 10;
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'count', $expectedCount);
+
+        $this->asserter()
+            ->assertResponsePropertyExists($response, '_links.last');
+
+        $response = $this->request(
+            $this->asserter()->readResponseProperty($response, '_links.last')
+        );
+
+        $expectedStatus = 200;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedNickname = 'Programmer24';
+        $expectedProp = 'items[4].nickname';
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, $expectedProp, $expectedNickname);
+
+        $expectedProp = 'items[5].nickname';
+        $this->asserter()
+            ->assertResponsePropertyDoesNotExist($response, $expectedProp);
+
+        $expectedCount = 5;
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'count', $expectedCount);
+
+        $this->asserter()
+            ->assertResponsePropertyExists($response, '_links.first');
     }
 
     public function test_GivenExistentProgrammer_WhenUpdating_ShouldChangeExistentProgrammer()
     {
         $expectedNickname = uniqid("Shurelous");
-        $expectedStatus = 200;
-        $expectedProp = 'avatarNumber';
         $expectedData = [
             'nickname' => $expectedNickname,
             'avatarNumber' => 6,
@@ -131,19 +237,19 @@ class ProgrammerControllerTest extends ApiTestCase
             'PUT'
         );
 
+        $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
+        $expectedProp = 'avatarNumber';
         $this->asserter()
             ->assertResponsePropertyEquals(
                 $response, $expectedProp, $expectedData[$expectedProp]
             );
-
     }
 
     public function test_GivenExistentProgrammer_WhenUpdatingNickname_ShouldNotChangeNickname()
     {
         $expectedNickname = uniqid("Shurelous");
-        $expectedStatus = 200;
         $expectedData = [
             'nickname' => 'oops',
             'avatarNumber' => 2
@@ -163,6 +269,7 @@ class ProgrammerControllerTest extends ApiTestCase
             'PUT'
         );
 
+        $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
         $this->asserter()
@@ -179,7 +286,6 @@ class ProgrammerControllerTest extends ApiTestCase
     public function test_GivenExistentProgrammer_WhenDelete_ShouldDeleteProgrammer()
     {
         $expectedNickname = uniqid("Shurelous");
-        $expectedStatus = 204;
 
         $uri = "/api/programmers/$expectedNickname";
 
@@ -191,13 +297,13 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $response = $this->request($uri, [], 'DELETE');
 
+        $expectedStatus = 204;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
     }
 
     public function test_GivenExistentProgrammer_WhenPatching_ShouldChangeExistentProgrammer()
     {
         $expectedNickname = uniqid("Shurelous");
-        $expectedStatus = 200;
         $expectedData = [
             'tagLine' => 'worked'
         ];
@@ -216,6 +322,7 @@ class ProgrammerControllerTest extends ApiTestCase
             'PATCH'
         );
 
+        $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
         $this->asserter()
@@ -231,14 +338,10 @@ class ProgrammerControllerTest extends ApiTestCase
 
     public function test_GivenInvalidProgrammer_WhenCreating_ShouldShowErrors()
     {
-        $expectedStatus = 400;
-
         $data = [
             'avatarNumber' => rand(1,6),
             'tagLine' => 'aloha'
         ];
-
-        $expectedProps = ['type', 'title', 'errors'];
 
         $response = $this->request(
             '/api/programmers',
@@ -246,10 +349,10 @@ class ProgrammerControllerTest extends ApiTestCase
             'POST'
         );
 
+        $expectedStatus = 400;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
 
-        $data = json_decode($response->getBody(), true);
-
+        $expectedProps = ['type', 'title', 'errors'];
         $this->asserter()
             ->assertResponsePropertiesExist($response, $expectedProps);
 
@@ -283,8 +386,6 @@ class ProgrammerControllerTest extends ApiTestCase
     "tagLine": "aloha"
 }
 EOF;
-
-        $expectedProps = ['type', 'title', 'errors'];
 
         $response = $this->request(
             '/api/programmers',

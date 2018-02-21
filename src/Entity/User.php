@@ -24,7 +24,7 @@ class User extends BaseUser
     protected $id;
 
     /**
-     * @Serializer\Expose()
+     * @Serializer\Expose
      */
     protected $username;
 
