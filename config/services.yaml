@@ -43,7 +43,9 @@ services:
     App\Controller\Web\ProgrammerController:
         autowire: true
 
-    link_serialization_subscriber:
-        class: App\Serializer\LinkSerializationSubscriber
+    App\Serializer\LinkSerializationSubscriber:
         tags:
             - { name: jms_serializer.event_subscriber }
+
+    App\Security\JwtTokenAuthenticator:
+        autowire: true

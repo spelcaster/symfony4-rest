@@ -14,6 +14,14 @@
         <env name="APP_DEBUG" value="1" />
         <env name="APP_SECRET" value="s$cretf0rt3st" />
         <env name="SHELL_VERBOSITY" value="-1" />
+
+        <!-- ###+ lexik/jwt-authentication-bundle ### -->
+        <!-- Key paths should be relative to the project directory -->
+        <env name="JWT_PRIVATE_KEY_PATH" value="config/jwt/private.pem"/>
+        <env name="JWT_PUBLIC_KEY_PATH" value="config/jwt/public.pem"/>
+        <env name="JWT_PASSPHRASE" value="2a0c6c5db43b940433febd97c7bff4fe"/>
+
+        <!-- ###- lexik/jwt-authentication-bundle ### -->
         <!-- define your env variables for the test env here -->
         <env name="DATABASE_URL" value="mysql://user:password@127.0.0.1:3306/database" />
         <env name="TEST_BASE_URL" value="http://localhost:8000" />

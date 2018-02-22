@@ -10,6 +10,7 @@ use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use App\Api\ApiProblemException;
 use App\Api\ApiProblem;
+use App\Api\ResponseFactory;
 
 /**
  * Class ApiExceptionSubscriber
@@ -24,13 +25,20 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
     protected $isDebug;
 
     /**
+     * @var ResponseFactory
+     */
+    protected $responseFactory;
+
+    /**
      * ApiExceptionSubscriber ctor
      *
      * @param bool $isDebug App is in debug mode?
      */
-    public function __construct(bool $isDebug)
-    {
+    public function __construct(
+        bool $isDebug, ResponseFactory $responseFactory
+    ) {
         $this->isDebug = $isDebug;
+        $this->responseFactory = $responseFactory;
     }
 
     /**
@@ -65,7 +73,9 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
 
         if ($e instanceof ApiProblemException) {
             $apiProblem = $e->getApiProblem();
-            $this->setApiProblemResponse($event, $apiProblem);
+            $event->setResponse(
+                $this->responseFactory->createResponse($apiProblem)
+            );
             return;
         }
 
@@ -75,31 +85,9 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
             $apiProblem->set('detail', $e->getMessage());
         }
 
-        $this->setApiProblemResponse($event, $apiProblem);
-    }
-
-    /**
-     * Update event response to return an 'application/problem+json' response
-     *
-     * @param GetResponseForExceptionEvent $event      The event to update
-     * @param ApiProblem                   $apiProblem The api problem
-     *
-     * @return void
-     */
-    protected function setApiProblemResponse(
-        GetResponseForExceptionEvent $event, ApiProblem $apiProblem
-    ) {
-        $data = $apiProblem->toArray();
-
-        if ($data['type'] != 'about:blank') {
-            $data['type'] = "http://localhost:8001/docs/errors#{$data['type']}";
-        }
-
-        $response = new JsonResponse($data, $apiProblem->getStatusCode());
-
-        $response->headers->set('Content-Type', 'application/problem+json');
-        $event->setResponse($response);
-
+        $event->setResponse(
+            $this->responseFactory->createResponse($apiProblem)
+        );
     }
 
     public static function getSubscribedEvents()

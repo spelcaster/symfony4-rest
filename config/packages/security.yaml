@@ -4,12 +4,22 @@ security:
 
     providers:
         battle_users:
-            entity: { class: App:User }
+            entity:
+                class: App\Entity\User
 
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+
+        api:
+            pattern: ^/api/
+            anonymous: true
+            stateless: true
+
+            guard:
+                authenticators:
+                    - App\Security\JwtTokenAuthenticator
 
         main:
             pattern: ^/

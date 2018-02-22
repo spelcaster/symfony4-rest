@@ -139,9 +139,15 @@ class ApiTestCase extends KernelTestCase
 
     protected function debugResponse(Response $response)
     {
-        //$this->printDebug(AbstractMessage::getStartLineAndHeaders($response));
-        $body = $response->getBody()->getContents();
+        $this->printDebug(
+            $response->getStatusCode() . ' ' . $response->getReasonPhrase()
+        );
 
+        foreach ($response->getHeaders() as $name => $values) {
+            $this->printDebug($name . ': ' . implode(', ', $values));
+        }
+
+        $body = $response->getBody()->getContents();
         $contentType = $response->getHeader('Content-Type')[0];
         if ($contentType == 'application/json' || strpos($contentType, '+json') !== false) {
             $data = json_decode($body);
@@ -221,6 +227,7 @@ class ApiTestCase extends KernelTestCase
         $user->setUsername($username);
         $user->setEmail("$username@example.com");
         $user->setPlainPassword($plainPassword);
+        $user->setEnabled(true);
 
         $em = $this->getEntityManager();
 
@@ -294,5 +301,15 @@ class ApiTestCase extends KernelTestCase
         }
 
         return $response;
+    }
+
+    protected function getAuthorizedHeaders($username, $headers = [])
+    {
+        $token = $this->getService('lexik_jwt_authentication.encoder')
+            ->encode(['username' => $username]);
+
+        $headers['Authorization'] = "Bearer $token";
+
+        return $headers;
     }
 }

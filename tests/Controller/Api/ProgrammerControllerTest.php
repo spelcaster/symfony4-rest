@@ -2,6 +2,7 @@
 
 namespace App\Tests\Controller\Api;
 
+use Symfony\Component\HttpFoundation\Response;
 use App\Test\ApiTestCase;
 
 class ProgrammerControllerTest extends ApiTestCase
@@ -24,7 +25,10 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $response = $this->request(
             '/api/programmers',
-            ['body' => json_encode($data)],
+            [
+                'body' => json_encode($data),
+                'headers' => $this->getAuthorizedHeaders('user')
+            ],
             'POST'
         );
 
@@ -50,7 +54,9 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->request($uri);
+        $response = $this->request($uri, [
+            'headers' => $this->getAuthorizedHeaders('user')
+        ]);
 
         $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
@@ -88,7 +94,9 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->request($uri);
+        $response = $this->request($uri, [
+            'headers' => $this->getAuthorizedHeaders('user')
+        ]);
 
         $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
@@ -115,7 +123,9 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha2'
         ]);
 
-        $response = $this->request($uri);
+        $response = $this->request($uri, [
+            'headers' => $this->getAuthorizedHeaders('user')
+        ]);
 
         $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
@@ -150,7 +160,9 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $uri = "/api/programmers?filter=programmer";
 
-        $response = $this->request($uri);
+        $response = $this->request($uri, [
+            'headers' => $this->getAuthorizedHeaders('user')
+        ]);
 
         $expectedStatus = 200;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
@@ -172,7 +184,10 @@ class ProgrammerControllerTest extends ApiTestCase
             ->assertResponsePropertyExists($response, '_links.next');
 
         $response = $this->request(
-            $this->asserter()->readResponseProperty($response, '_links.next')
+            $this->asserter()->readResponseProperty($response, '_links.next'),
+            [
+                'headers' => $this->getAuthorizedHeaders('user')
+            ]
         );
 
         $expectedStatus = 200;
@@ -191,7 +206,10 @@ class ProgrammerControllerTest extends ApiTestCase
             ->assertResponsePropertyExists($response, '_links.last');
 
         $response = $this->request(
-            $this->asserter()->readResponseProperty($response, '_links.last')
+            $this->asserter()->readResponseProperty($response, '_links.last'),
+            [
+                'headers' => $this->getAuthorizedHeaders('user')
+            ]
         );
 
         $expectedStatus = 200;
@@ -233,7 +251,10 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $response = $this->request(
             $uri,
-            ['body' => json_encode($expectedData)],
+            [
+                'body' => json_encode($expectedData),
+                'headers' => $this->getAuthorizedHeaders('user')
+            ],
             'PUT'
         );
 
@@ -265,7 +286,10 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $response = $this->request(
             $uri,
-            ['body' => json_encode($expectedData)],
+            [
+                'body' => json_encode($expectedData),
+                'headers' => $this->getAuthorizedHeaders('user')
+            ],
             'PUT'
         );
 
@@ -295,7 +319,11 @@ class ProgrammerControllerTest extends ApiTestCase
             'tagLine' => 'aloha'
         ]);
 
-        $response = $this->request($uri, [], 'DELETE');
+        $response = $this->request(
+            $uri,
+            ['headers' => $this->getAuthorizedHeaders('user')],
+            'DELETE'
+        );
 
         $expectedStatus = 204;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
@@ -318,7 +346,10 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $response = $this->request(
             $uri,
-            ['body' => json_encode($expectedData)],
+            [
+                'body' => json_encode($expectedData),
+                'headers' => $this->getAuthorizedHeaders('user')
+            ],
             'PATCH'
         );
 
@@ -345,7 +376,10 @@ class ProgrammerControllerTest extends ApiTestCase
 
         $response = $this->request(
             '/api/programmers',
-            ['body' => json_encode($data)],
+            [
+                'body' => json_encode($data),
+                'headers' => $this->getAuthorizedHeaders('user')
+            ],
             'POST'
         );
 
@@ -389,7 +423,10 @@ EOF;
 
         $response = $this->request(
             '/api/programmers',
-            ['body' => $invalidJson],
+            [
+                'body' => $invalidJson,
+                'headers' => $this->getAuthorizedHeaders('user')
+            ],
             'POST'
         );
 
@@ -407,7 +444,12 @@ EOF;
 
     public function test_GivenInexistentProgrammer_WhenShow_ShouldFailWith404()
     {
-        $response = $this->request('/api/programmers/noop');
+        $response = $this->request(
+            '/api/programmers/noop',
+            [
+                'headers' => $this->getAuthorizedHeaders('user')
+            ]
+        );
 
         $expectedStatus = 404;
         $this->assertEquals($expectedStatus, $response->getStatusCode());
@@ -425,5 +467,45 @@ EOF;
 
         $this->asserter()
             ->assertResponsePropertyEquals($response, 'detail', 'No programmer found with username noop');
+    }
+
+    public function test_GivenNewProgrammer_WhenUnauthorized_ShouldReturn401()
+    {
+        $response = $this->request(
+            '/api/programmers',
+            ['body' => '{}'],
+            'POST'
+        );
+
+        $expectedStatus = 401;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+    }
+
+    public function test_GivenInvalidToken_WhenAnyRequest_ShouldFailWith401()
+    {
+        $response = $this->request(
+            '/api/programmers/noop',
+            [
+                'headers' => [
+                    'Authorization' => 'shurelous'
+                ]
+            ]
+        );
+
+        $expectedStatus = Response::HTTP_UNAUTHORIZED;
+        $this->assertEquals($expectedStatus, $response->getStatusCode());
+
+        $expectedContent = 'application/problem+json';
+        $this->assertEquals(
+            $expectedContent, $response->getHeader('Content-Type')[0]
+        );
+
+        $this->asserter()
+            ->assertResponsePropertyEquals($response, 'type', 'about:blank');
+
+        $this->asserter()
+            ->assertResponsePropertyEquals(
+                $response, 'title', Response::$statusTexts[$expectedStatus]
+            );
     }
 }
